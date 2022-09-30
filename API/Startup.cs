@@ -39,6 +39,9 @@ namespace API
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "WebAPIv5", Version = "v1" });
             });
+
+            // Add CORS service
+            services.AddCors();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -54,6 +57,13 @@ namespace API
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            // CORS configuration
+            app.UseCors(opt =>
+            {
+                // Without AllowCredentials() I could not pass cookies to and from client on a different domain.
+                opt.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("https://localhost:4200");
+            });
 
             app.UseAuthorization();
 
