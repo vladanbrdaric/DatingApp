@@ -1,8 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using API.Data;
+using API.Extensions;
+using API.Interfaces;
+using API.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -12,6 +17,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 namespace API
@@ -24,15 +30,13 @@ namespace API
             _config = config;
         }
 
+        // This is basically dependency injection container.
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
-            // Add DbContext service
-            services.AddDbContext<DataContext>(options =>
-            {
-                options.UseSqlite(_config.GetConnectionString("DefaultConnection"));
-            });
+            // I'm adding services from extension method I created. Check for 'ApplicationServiceExtensions'.
+            // that way this file stay cleaner.
+            services.AddApplicationServices(_config);
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
@@ -42,6 +46,11 @@ namespace API
 
             // Add CORS service
             services.AddCors();
+
+            // Add service for authentication.
+            // I'm adding services from extension method I created. Check for 'ApplicationServiceExtensions'.
+            // that way this file stay cleaner.
+            services.AddIdentityServices(_config);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -58,12 +67,15 @@ namespace API
 
             app.UseRouting();
 
-            // CORS configuration
+            // CORS configuration, have to be places before Authentication.
             app.UseCors(opt =>
             {
                 // Without AllowCredentials() I could not pass cookies to and from client on a different domain.
                 opt.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("https://localhost:4200");
             });
+
+            // This have to be right in place before Authorization
+            app.UseAuthentication();
 
             app.UseAuthorization();
 
